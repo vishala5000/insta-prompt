@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0A0406</color>
+    <color name="surface">#160709</color>
+    <color name="surface2">#1F090D</color>
+    <color name="stroke">#47121B</color>
+    <color name="strokeSoft">#3E1016</color>
+    <color name="red">#FF2D40</color>
+    <color name="redHot">#FF4B5C</color>
+    <color name="redDeep">#8E0E1F</color>
+    <color name="redSoft">#FF8A94</color>
+    <color name="amber">#FFB03A</color>
+    <color name="success">#2BD97C</color>
+    <color name="successDeep">#1FA960</color>
+    <color name="successBg">#0E2A1C</color>
+    <color name="successStroke">#1F5C3C</color>
+    <color name="successInk">#062312</color>
+    <color name="textPrimary">#FFFFFF</color>
+    <color name="textBody">#F4E9EA</color>
+    <color name="textDim">#C9A2A8</color>
+    <color name="textFaint">#9A7076</color>
+    <color name="iconBg">#12060A</color>
+</resources>

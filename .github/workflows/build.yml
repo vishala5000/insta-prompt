@@ -1,0 +1,72 @@
+name: Build INSTA PROMPT (Signed APK)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: insta-prompt-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Assemble and Sign Release APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK (pinned cmdline-tools)
+        run: |
+          SDK="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$SDK/cmdline-tools"
+          OK=""
+          for V in 11076708 10406996 9477386; do
+            echo "Trying cmdline-tools build ${V}..."
+            if curl -fsSL --retry 4 --retry-all-errors -o /tmp/cmdtools.zip "https://dl.google.com/android/repository/commandlinetools-linux-${V}_latest.zip"; then
+              OK=1
+              echo "Downloaded cmdline-tools build ${V}"
+              break
+            fi
+          done
+          if [ -z "$OK" ]; then echo "ERROR: cmdline-tools download failed"; exit 1; fi
+          unzip -q /tmp/cmdtools.zip -d "$SDK/cmdline-tools"
+          mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+          (yes || true) | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          (yes || true) | "$SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          "$SDK/build-tools/34.0.0/apksigner" --version
+
+      - name: Install Gradle 8.6 (pinned)
+        run: |
+          curl -fsSL --retry 4 --retry-all-errors -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.6-bin.zip
+          mkdir -p "$RUNNER_TEMP/gradle-dist"
+          unzip -q /tmp/gradle.zip -d "$RUNNER_TEMP/gradle-dist"
+          echo "$RUNNER_TEMP/gradle-dist/gradle-8.6/bin" >> "$GITHUB_PATH"
+
+      - name: Build signed release APK
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APK signature
+        run: |
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+          cp app/build/outputs/apk/release/app-release.apk INSTA-PROMPT-signed.apk
+          ls -lh INSTA-PROMPT-signed.apk
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: INSTA-PROMPT-signed-apk
+          path: INSTA-PROMPT-signed.apk
+          if-no-files-found: error
